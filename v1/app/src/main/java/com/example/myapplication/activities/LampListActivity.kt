@@ -2,13 +2,17 @@ package com.example.myapplication.activities
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.myapplication.R
+import com.example.myapplication.api.RetrofitClient
 import com.example.myapplication.viewmodels.LampListViewModel
 import kotlinx.coroutines.launch
 
@@ -21,6 +25,13 @@ class LampListActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_lamp_list)
+
+        // Set up Toolbar as ActionBar
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
+
+        // Initialize RetrofitClient with SharedPreferences
+        RetrofitClient.init(this)
 
         android.util.Log.d("LampListActivity", "onCreate called")
 
@@ -58,5 +69,21 @@ class LampListActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         viewModel.loadLamps()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_lamp_list, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_settings -> {
+                val intent = Intent(this, SettingsActivity::class.java)
+                startActivity(intent)
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 }

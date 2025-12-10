@@ -27,7 +27,32 @@ class ScheduleAdapter(
 
     override fun onBindViewHolder(holder: ScheduleViewHolder, position: Int) {
         val s = schedules[position]
-        holder.text.text = "${s.timeHm} ${s.action.toUpperCase()} (${s.days})"
+        
+        val dayNames = arrayOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
+        
+        // Convert days string to human-readable format
+        val displayDays = when (val d = s.days) {
+            is String -> {
+                val trimmed = d.trim()
+                when {
+                    trimmed.equals("daily", ignoreCase = true) -> "Daily"
+                    trimmed.isEmpty() -> "Daily"
+                    else -> {
+                        // Parse comma-separated numbers: "0,1,5" -> "SUN, MON, FRI"
+                        trimmed.split(',')
+                            .mapNotNull { dayStr ->
+                                dayStr.trim().toIntOrNull()?.let { dayNum ->
+                                    if (dayNum in 0..6) dayNames[dayNum] else null
+                                }
+                            }
+                            .joinToString(", ")
+                    }
+                }
+            }
+            else -> d?.toString() ?: "Daily"
+        }
+
+        holder.text.text = "${s.timeHm} ${s.action.uppercase()} ($displayDays)"
         holder.deleteBtn.setOnClickListener { onDelete(s) }
     }
 

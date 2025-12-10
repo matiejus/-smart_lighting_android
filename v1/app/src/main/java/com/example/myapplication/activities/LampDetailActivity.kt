@@ -119,16 +119,59 @@ class LampDetailActivity : AppCompatActivity() {
                     .setSingleChoiceItems(actions, 0) { _, which -> selectedAction = actions[which] }
                     .setPositiveButton("Next") { d, _ ->
                         d.dismiss()
-                        // Ask for days (simple input)
-                        val input = EditText(this)
-                        input.hint = "daily or 0,1,2 (comma-separated)"
-                        input.setText("daily")
+                        // Ask for days using custom dialog with weekday checkboxes
+                        val inflater = layoutInflater
+                        val view = inflater.inflate(com.example.myapplication.R.layout.dialog_days, null)
+
+                        val chkSun = view.findViewById<android.widget.CheckBox>(com.example.myapplication.R.id.chkSun)
+                        val chkMon = view.findViewById<android.widget.CheckBox>(com.example.myapplication.R.id.chkMon)
+                        val chkTue = view.findViewById<android.widget.CheckBox>(com.example.myapplication.R.id.chkTue)
+                        val chkWed = view.findViewById<android.widget.CheckBox>(com.example.myapplication.R.id.chkWed)
+                        val chkThu = view.findViewById<android.widget.CheckBox>(com.example.myapplication.R.id.chkThu)
+                        val chkFri = view.findViewById<android.widget.CheckBox>(com.example.myapplication.R.id.chkFri)
+                        val chkSat = view.findViewById<android.widget.CheckBox>(com.example.myapplication.R.id.chkSat)
+                        val chkEvery = view.findViewById<android.widget.CheckBox>(com.example.myapplication.R.id.chkEvery)
+
+                        // Sync logic: if Every day is checked, check all; if all checked, set Every
+                        chkEvery.setOnCheckedChangeListener { _, isChecked ->
+                            chkSun.isChecked = isChecked
+                            chkMon.isChecked = isChecked
+                            chkTue.isChecked = isChecked
+                            chkWed.isChecked = isChecked
+                            chkThu.isChecked = isChecked
+                            chkFri.isChecked = isChecked
+                            chkSat.isChecked = isChecked
+                        }
+
+                        val anyChangeListener = android.widget.CompoundButton.OnCheckedChangeListener { _, _ ->
+                            chkEvery.isChecked = chkSun.isChecked && chkMon.isChecked && chkTue.isChecked && chkWed.isChecked && chkThu.isChecked && chkFri.isChecked && chkSat.isChecked
+                        }
+                        chkSun.setOnCheckedChangeListener(anyChangeListener)
+                        chkMon.setOnCheckedChangeListener(anyChangeListener)
+                        chkTue.setOnCheckedChangeListener(anyChangeListener)
+                        chkWed.setOnCheckedChangeListener(anyChangeListener)
+                        chkThu.setOnCheckedChangeListener(anyChangeListener)
+                        chkFri.setOnCheckedChangeListener(anyChangeListener)
+                        chkSat.setOnCheckedChangeListener(anyChangeListener)
+
                         AlertDialog.Builder(this)
                             .setTitle("Days")
-                            .setView(input)
+                            .setView(view)
                             .setPositiveButton("Create") { _, _ ->
-                                val days = input.text.toString().ifBlank { "daily" }
-                                viewModel.createSchedule(espId, timeHm, selectedAction, days)
+                                val selected = mutableListOf<Int>()
+                                if (chkSun.isChecked) selected.add(0)
+                                if (chkMon.isChecked) selected.add(1)
+                                if (chkTue.isChecked) selected.add(2)
+                                if (chkWed.isChecked) selected.add(3)
+                                if (chkThu.isChecked) selected.add(4)
+                                if (chkFri.isChecked) selected.add(5)
+                                if (chkSat.isChecked) selected.add(6)
+
+                                val daysValue = if (chkEvery.isChecked || selected.isEmpty()) {
+                                    "daily"
+                                } else selected.joinToString(",")
+
+                                viewModel.createSchedule(espId, timeHm, selectedAction, daysValue)
                             }
                             .setNegativeButton("Cancel", null)
                             .show()

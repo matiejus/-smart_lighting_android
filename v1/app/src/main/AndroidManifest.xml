@@ -21,5 +21,7 @@
 
         <activity android:name=".activities.LampDetailActivity" />
 
+        <activity android:name=".activities.SettingsActivity" />
+
     </application>
 </manifest>

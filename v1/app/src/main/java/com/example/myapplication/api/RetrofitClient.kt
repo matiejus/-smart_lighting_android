@@ -1,15 +1,18 @@
 package com.example.myapplication.api
 
+import android.content.Context
+import android.content.SharedPreferences
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
-    private const val BASE_URL = "http://10.0.2.2:3000/" // Android emulator localhost
+    private lateinit var sharedPrefs: SharedPreferences
+    private var retrofit: Retrofit? = null
 
     init {
-        android.util.Log.d("RetrofitClient", "Initializing with BASE_URL: $BASE_URL")
+        android.util.Log.d("RetrofitClient", "RetrofitClient object initialized")
     }
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
@@ -22,16 +25,52 @@ object RetrofitClient {
         .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
         .build()
 
-    val retrofit = Retrofit.Builder()
-        .baseUrl(BASE_URL)
-        .client(httpClient)
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
+    private fun getCurrentBaseUrl(): String {
+        val savedIp = sharedPrefs.getString("server_ip", "10.0.2.2") ?: "10.0.2.2"
+        val savedPort = sharedPrefs.getString("server_port", "3000") ?: "3000"
+        return "http://$savedIp:$savedPort/"
+    }
 
-    fun getLampApi(): LampApi = retrofit.create(LampApi::class.java)
+    private fun buildRetrofit(): Retrofit {
+        val baseUrl = getCurrentBaseUrl()
+        android.util.Log.d("RetrofitClient", "Building Retrofit with BASE_URL: $baseUrl")
+        return Retrofit.Builder()
+            .baseUrl(baseUrl)
+            .client(httpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    fun getLampApi(): LampApi {
+        if (retrofit == null) {
+            retrofit = buildRetrofit()
+        }
+        return retrofit!!.create(LampApi::class.java)
+    }
 
     /**
-     * For physical devices, update the BASE_URL to your server's actual IP address.
-     * For example: "http://192.168.1.100:3000/"
+     * Initialize RetrofitClient with context to read server IP from SharedPreferences.
+     * Call this once in your Application class or MainActivity.onCreate().
+     */
+    fun init(context: Context) {
+        sharedPrefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val baseUrl = getCurrentBaseUrl()
+        android.util.Log.d("RetrofitClient", "init() called with BASE_URL: $baseUrl")
+    }
+
+    /**
+     * Call this after changing settings to rebuild Retrofit with new IP/port.
+     */
+    fun updateBaseUrl() {
+        val baseUrl = getCurrentBaseUrl()
+        android.util.Log.d("RetrofitClient", "updateBaseUrl() called, new BASE_URL: $baseUrl")
+        // Force rebuild of Retrofit instance
+        retrofit = null
+    }
+
+    /**
+     * For physical devices, update the server IP in Settings.
+     * For emulator, use 10.0.2.2 to access host localhost.
      */
 }
+

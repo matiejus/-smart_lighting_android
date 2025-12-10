@@ -168,10 +168,58 @@ router.post('/api/devices/:esp_id/schedules', async (req, res) => {
   const esp_id = req.params.esp_id;
   const { time_hm, action, days } = req.body;
 
-  await db.run(`
-    INSERT INTO schedules(esp_id, time_hm, action, days, enabled, created_at)
-    VALUES (?, ?, ?, ?, 1, ?)
-  `, [esp_id, time_hm, action, days || "daily", nowTs()]);
+    let normalizedDays = 'daily';
+
+    // Helper: convert an object map like {"0":true,"1":false} into "0,"
+    const objToDays = (obj) => {
+      try {
+        const keys = Object.keys(obj)
+          .filter(k => obj[k])
+          .map(k => Number(k))
+          .filter(n => !Number.isNaN(n))
+          .sort((a,b) => a - b);
+        return keys.length === 0 ? 'daily' : keys.join(',');
+      } catch (e) {
+        return 'daily';
+      }
+    };
+
+    if (Array.isArray(days)) {
+      if (days.length === 0) normalizedDays = 'daily';
+      else normalizedDays = days.map(d => String(d)).join(',');
+    } else if (typeof days === 'string') {
+      const t = days.trim();
+      if (t === '') {
+        normalizedDays = 'daily';
+      } else if ((t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']'))) {
+        // try to parse JSON string
+        try {
+          const parsed = JSON.parse(t);
+          if (Array.isArray(parsed)) {
+            normalizedDays = parsed.map(d => String(d)).join(',') || 'daily';
+          } else if (parsed && typeof parsed === 'object') {
+            normalizedDays = objToDays(parsed);
+          } else {
+            normalizedDays = String(parsed) || 'daily';
+          }
+        } catch (e) {
+          // fall back to raw string
+          normalizedDays = t;
+        }
+      } else {
+        normalizedDays = t;
+      }
+    } else if (typeof days === 'number') {
+      normalizedDays = String(days);
+    } else if (days && typeof days === 'object') {
+      // received an object (not array) e.g. {"0":true, "1":false}
+      normalizedDays = objToDays(days);
+    }
+
+    await db.run(`
+      INSERT INTO schedules(esp_id, time_hm, action, days, enabled, created_at)
+      VALUES (?, ?, ?, ?, 1, ?)
+    `, [esp_id, time_hm, action, normalizedDays, nowTs()]);
 
   res.json({ ok: true });
 });
