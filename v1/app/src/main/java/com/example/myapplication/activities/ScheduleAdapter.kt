@@ -11,12 +11,12 @@ import com.example.myapplication.models.Schedule
 
 class ScheduleAdapter(
     private var schedules: List<Schedule>,
-    private val onDelete: (Schedule) -> Unit
+    private val onEdit: (Schedule) -> Unit
 ) : RecyclerView.Adapter<ScheduleAdapter.ScheduleViewHolder>() {
 
     class ScheduleViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val text: TextView = view.findViewById(R.id.scheduleText)
-        val deleteBtn: Button = view.findViewById(R.id.deleteScheduleButton)
+        val editBtn: Button = view.findViewById(R.id.editScheduleButton)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ScheduleViewHolder {
@@ -53,7 +53,7 @@ class ScheduleAdapter(
         }
 
         holder.text.text = "${s.timeHm} ${s.action.uppercase()} ($displayDays)"
-        holder.deleteBtn.setOnClickListener { onDelete(s) }
+        holder.editBtn.setOnClickListener { onEdit(s) }
     }
 
     override fun getItemCount() = schedules.size
@@ -62,4 +62,6 @@ class ScheduleAdapter(
         schedules = newSchedules
         notifyDataSetChanged()
     }
+
+    fun getSchedules(): List<Schedule> = schedules
 }

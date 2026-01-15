@@ -13,9 +13,11 @@
         android:text="08:00 on (daily)" />
 
     <Button
-        android:id="@+id/deleteScheduleButton"
+        android:id="@+id/editScheduleButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Delete" />
+        android:text="Edit"
+        android:textSize="12sp"
+        android:padding="4dp" />
 
 </LinearLayout>

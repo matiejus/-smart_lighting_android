@@ -41,6 +41,13 @@ data class ScheduleRequest(
     val days: String = "daily"
 )
 
+data class ScheduleFilterRequest(
+    val timefilterfrom: String? = null,
+    val timefilterto: String? = null,
+    val dayfilter: String? = null,
+    val actionfilter: String? = null
+)
+
 data class ApiResponse(
     val ok: Boolean? = null,
     val state: Int? = null,
@@ -78,11 +85,17 @@ interface LampApi {
         @Body request: ScheduleRequest
     ): ApiResponse
 
-    @DELETE("/api/devices/{esp_id}/schedules/{id}")
-    suspend fun deleteSchedule(
-        @Path("esp_id") espId: String,
-        @Path("id") id: Int
+    @PUT("/api/devices/schedules/edit/{id}")
+    suspend fun updateSchedule(
+        @Path("id") id: Int,
+        @Body request: ScheduleRequest
     ): ApiResponse
+
+    @POST("/api/devices/{esp_id}/schedules/filter")
+    suspend fun filterSchedules(
+        @Path("esp_id") espId: String,
+        @Body request: ScheduleFilterRequest
+    ): List<ScheduleResponse>
 
     // ESP endpoints
     @GET("/api/esp/{esp_id}/state")
