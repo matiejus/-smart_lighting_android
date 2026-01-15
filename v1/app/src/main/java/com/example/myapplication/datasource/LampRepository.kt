@@ -3,15 +3,40 @@ package com.example.myapplication.datasource
 import com.example.myapplication.api.LampApi
 import com.example.myapplication.api.PowerRequest
 import com.example.myapplication.api.RetrofitClient
+import com.example.myapplication.api.ScheduleFilterRequest
 import com.example.myapplication.api.ScheduleRequest
 import com.example.myapplication.api.StateRequest
 import com.example.myapplication.models.Lamp
 import com.example.myapplication.models.Reading
 import com.example.myapplication.models.Schedule
 import com.example.myapplication.models.UsageStats
+import org.json.JSONObject
+import retrofit2.HttpException
 
 class LampRepository {
     private val api: LampApi = RetrofitClient.getLampApi()
+
+    private fun toSchedule(schedule: com.example.myapplication.api.ScheduleResponse): Schedule {
+        return Schedule(
+            id = schedule.id,
+            espId = schedule.esp_id,
+            timeHm = schedule.time_hm,
+            action = schedule.action,
+            days = schedule.days,
+            enabled = schedule.enabled == 1,
+            createdAt = schedule.created_at
+        )
+    }
+
+    private fun parseErrorMessage(e: HttpException): String? {
+        val body = e.response()?.errorBody()?.string() ?: return null
+        return try {
+            val message = JSONObject(body).optString("error")
+            message.ifBlank { null }
+        } catch (ex: Exception) {
+            null
+        }
+    }
 
     suspend fun getLamps(): List<Lamp> {
         return try {
@@ -102,46 +127,40 @@ class LampRepository {
             val readings = getReadings(espId)
             
             if (readings.isEmpty()) {
-                return UsageStats(daily = 0f, weekly = 0f, monthly = 0f)
+                return UsageStats(daily = 0f, weekly = 0f, monthly = 0f, yearly = 0f)
             }
 
             val now = System.currentTimeMillis() / 1000
             val oneDayAgo = now - (24 * 60 * 60)
             val sevenDaysAgo = now - (7 * 24 * 60 * 60)
             val thirtyDaysAgo = now - (30 * 24 * 60 * 60)
+            val oneYearAgo = now - (365 * 24 * 60 * 60)
 
             val dailyReadings = readings.filter { it.timestamp >= oneDayAgo }
             val weeklyReadings = readings.filter { it.timestamp >= sevenDaysAgo }
             val monthlyReadings = readings.filter { it.timestamp >= thirtyDaysAgo }
+            val yearlyReadings = readings.filter { it.timestamp >= oneYearAgo }
 
             val daily = dailyReadings.sumOf { it.powerW.toDouble() }.toFloat() / 1000 // Convert to kWh
             val weekly = weeklyReadings.sumOf { it.powerW.toDouble() }.toFloat() / 1000
             val monthly = monthlyReadings.sumOf { it.powerW.toDouble() }.toFloat() / 1000
+            val yearly = yearlyReadings.sumOf { it.powerW.toDouble() }.toFloat() / 1000
 
             UsageStats(
                 daily = daily,
                 weekly = weekly,
-                monthly = monthly
+                monthly = monthly,
+                yearly = yearly
             )
         } catch (e: Exception) {
             e.printStackTrace()
-            UsageStats(daily = 0f, weekly = 0f, monthly = 0f)
+            UsageStats(daily = 0f, weekly = 0f, monthly = 0f, yearly = 0f)
         }
     }
 
     suspend fun getSchedules(espId: String): List<Schedule> {
         return try {
-            api.getSchedules(espId).map { schedule ->
-                Schedule(
-                    id = schedule.id,
-                    espId = schedule.esp_id,
-                    timeHm = schedule.time_hm,
-                    action = schedule.action,
-                    days = schedule.days,
-                    enabled = schedule.enabled == 1,
-                    createdAt = schedule.created_at
-                )
-            }
+            api.getSchedules(espId).map { schedule -> toSchedule(schedule) }
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
@@ -153,26 +172,67 @@ class LampRepository {
         timeHm: String,
         action: String,
         days: String = "daily"
-    ): Boolean {
+    ): Pair<Boolean, String?> {
         return try {
             val response = api.createSchedule(
                 espId,
                 ScheduleRequest(timeHm, action, days)
             )
-            response.ok == true
+            if (response.ok == true) {
+                Pair(true, null)
+            } else {
+                Pair(false, response.error ?: "Failed to create schedule")
+            }
+        } catch (e: HttpException) {
+            Pair(false, parseErrorMessage(e) ?: "Failed to create schedule")
         } catch (e: Exception) {
             e.printStackTrace()
-            false
+            Pair(false, e.message ?: "Error creating schedule")
         }
     }
 
-    suspend fun deleteSchedule(espId: String, scheduleId: Int): Boolean {
+    suspend fun updateSchedule(
+        scheduleId: Int,
+        timeHm: String,
+        action: String,
+        days: String = "daily"
+    ): Pair<Boolean, String?> {
         return try {
-            val response = api.deleteSchedule(espId, scheduleId)
-            response.ok == true
+            val response = api.updateSchedule(
+                scheduleId,
+                ScheduleRequest(timeHm, action, days)
+            )
+            if (response.ok == true) {
+                Pair(true, null)
+            } else {
+                Pair(false, response.error ?: "Failed to update schedule")
+            }
+        } catch (e: HttpException) {
+            Pair(false, parseErrorMessage(e) ?: "Failed to update schedule")
         } catch (e: Exception) {
             e.printStackTrace()
-            false
+            Pair(false, e.message ?: "Error updating schedule")
+        }
+    }
+
+    suspend fun filterSchedules(
+        espId: String,
+        action: String?,
+        day: Int?,
+        timeFrom: String?,
+        timeTo: String?
+    ): List<Schedule> {
+        return try {
+            val request = ScheduleFilterRequest(
+                timefilterfrom = timeFrom,
+                timefilterto = timeTo,
+                dayfilter = day?.toString(),
+                actionfilter = action
+            )
+            api.filterSchedules(espId, request).map { schedule -> toSchedule(schedule) }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
         }
     }
 

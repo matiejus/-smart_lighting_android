@@ -113,11 +113,11 @@ class LampDetailViewModel : ViewModel() {
     fun createSchedule(espId: String, timeHm: String, action: String, days: String = "daily") {
         viewModelScope.launch {
             try {
-                val success = repository.createSchedule(espId, timeHm, action, days)
+                val (success, errorMsg) = repository.createSchedule(espId, timeHm, action, days)
                 if (success) {
                     loadSchedules(espId)
                 } else {
-                    _error.value = "Failed to create schedule"
+                    _error.value = errorMsg ?: "Failed to create schedule"
                 }
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error creating schedule"
@@ -125,18 +125,41 @@ class LampDetailViewModel : ViewModel() {
         }
     }
 
-    fun deleteSchedule(espId: String, scheduleId: Int) {
+    fun updateSchedule(espId: String, scheduleId: Int, timeHm: String, action: String, days: String = "daily") {
         viewModelScope.launch {
             try {
-                val success = repository.deleteSchedule(espId, scheduleId)
+                val (success, errorMsg) = repository.updateSchedule(scheduleId, timeHm, action, days)
                 if (success) {
                     loadSchedules(espId)
                 } else {
-                    _error.value = "Failed to delete schedule"
+                    _error.value = errorMsg ?: "Failed to update schedule"
                 }
             } catch (e: Exception) {
-                _error.value = e.message ?: "Error deleting schedule"
+                _error.value = e.message ?: "Error updating schedule"
             }
+        }
+    }
+
+    fun filterSchedules(
+        espId: String,
+        action: String?,
+        day: Int?,
+        timeFrom: String?,
+        timeTo: String?
+    ) {
+        viewModelScope.launch {
+            try {
+                val filtered = repository.filterSchedules(espId, action, day, timeFrom, timeTo)
+                _schedules.value = filtered
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Error filtering schedules"
+            }
+        }
+    }
+
+    fun reloadSchedules(espId: String) {
+        viewModelScope.launch {
+            loadSchedules(espId)
         }
     }
 
