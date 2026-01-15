@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Smart Lamp API Tester</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; max-width: 900px; margin: 20px; }
+    label { display:block; margin-top:10px; }
+    input, select { padding:6px; }
+    button { padding:8px 12px; margin:6px 2px; }
+    pre { background:#f4f4f4; padding:10px; border-radius:6px; max-height:300px; overflow:auto; }
+    .row { display:flex; gap:8px; align-items:center; margin-top:8px; }
+    .small { width:120px; }
+  </style>
+</head>
+<body>
+  <h2>Smart Lamp — Quick Test Page</h2>
+
+  <div>
+    <label>Device ID:
+      <input id="espId" value="lamp01" />
+    </label>
+
+    <div class="row">
+      <button onclick="registerDevice()">Register device</button>
+      <button onclick="getDevices()">List devices</button>
+      <button onclick="getState()">Get device state</button>
+      <button onclick="getReadings()">Get readings</button>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <label>Relay:
+        <select id="relaySel" class="small">
+          <option value="1">ON</option>
+          <option value="0">OFF</option>
+        </select>
+      </label>
+      <button onclick="setRelay()">POST relay state</button>
+      <button onclick="setRelayViaQuery()">(GET query) quick test</button>
+    </div>
+
+    <hr />
+
+    <h4>Schedule</h4>
+    <div>
+      <label>Time HH:MM
+        <input id="schedTime" value="23:00" class="small" />
+      </label>
+      <label>Action
+        <select id="schedAction" class="small">
+          <option value="on">on</option>
+          <option value="off">off</option>
+        </select>
+      </label>
+      <label>Days (daily or 0,1,2... 0=Sun)
+        <input id="schedDays" value="daily" class="small" />
+      </label>
+      <div class="row">
+        <button onclick="postSchedule()">Create schedule</button>
+        <button onclick="getSchedules()">Get schedules</button>
+      </div>
+      <div class = "data-table">
+        <table class="list" id="dataList">
+            <thead>
+                <tr>
+                    <th style="display:none;">ID</th>
+                    <th>Time</th>
+                    <th>Action</th>
+                    <th>Days</th>
+                </tr>
+            </thead>
+            <tbody>
+
+            </tbody>
+        </table>
+      </div>
+    </div>
+
+    <hr />
+
+    <h4>Wattage for this lamp (Wh)</h4>
+    <div>
+      <label>Watt-hours
+        <input id="wattage" value="100" class="small" />
+      </label>
+      <div class="row">
+        <button onclick="postWattage()">Set consumption (Wh)</button>
+      </div>
+    </div>
+
+    <h4>Raw results</h4>
+    <pre id="output">Ready.</pre>
+    <button onclick="filterByInput()">Filtered results</button>
+    <label for="timefilterfrom">Time from:</label>
+    <input type="text" id="timefilterfrom" name="timefilterfrom"><br><br>
+    <label for="timefilterto">Time to:</label>
+    <input type="text" id="timefilterto" name="timefilterto"><br><br>
+    <label for="dayfilter">Day:</label>
+    <input type="text" id="dayfilter" name="dayfilter"><br><br>
+    <label for="actionfilter">Action:</label>
+    <input type="text" id="actionfilter" name="actionfilter"><br><br>
+  </div>
+
+<script>
+const base = location.origin; // http://localhost:3000
+
+
+
+function print(o){
+  const el = document.getElementById('output');
+  el.textContent = typeof o === 'string' ? o : JSON.stringify(o, null, 2);
+  console.log(o);
+}
+
+async function filterByInput() {
+  var timefilterfrom = document.getElementById('timefilterfrom').value;
+  var timefilterto = document.getElementById('timefilterto').value;
+  var dayfilter = document.getElementById('dayfilter').value;
+  var actionfilter = document.getElementById('actionfilter').value;
+
+  const espId = document.getElementById('espId').value;
+  const url = base + '/api/devices/' + encodeURIComponent(espId) + '/schedules/filter';
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ timefilterfrom, timefilterto, actionfilter, dayfilter })
+  });
+  
+  print(await r.json());
+}
+
+async function registerDevice(){
+  const espId = document.getElementById('espId').value;
+  const url = base + '/api/esp/register';
+  const body = { esp_id: espId, name: 'test-' + espId };
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
+  });
+  print(await r.json());
+}
+
+async function getDevices(){
+  const r = await fetch(base + '/api/devices');
+  print(await r.json());
+}
+
+async function getState(){
+  const espId = document.getElementById('espId').value;
+  const r = await fetch(base + '/api/esp/' + encodeURIComponent(espId) + '/state');
+  print(await r.json());
+}
+
+async function getReadings(){
+  const espId = document.getElementById('espId').value;
+  const r = await fetch(base + '/api/devices/' + encodeURIComponent(espId) + '/readings');
+  print(await r.json());
+}
+
+async function setRelay(){
+  // POST endpoint (recommended)
+  const espId = document.getElementById('espId').value;
+  const state = Number(document.getElementById('relaySel').value);
+  const url = base + '/api/devices/' + encodeURIComponent(espId) + '/relay';
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ state })
+  });
+  print(await r.json());
+}
+
+async function setRelayViaQuery(){
+  // quick GET query style (if you kept that route)
+  const espId = document.getElementById('espId').value;
+  const state = Number(document.getElementById('relaySel').value);
+  const r = await fetch(base + '/api/devices/' + encodeURIComponent(espId) + '/relay?state=' + state);
+  print(await r.json());
+}
+
+async function postSchedule(){
+  const espId = document.getElementById('espId').value;
+  const time_hm = document.getElementById('schedTime').value;
+  const action = document.getElementById('schedAction').value;
+  const days = document.getElementById('schedDays').value;
+  const url = base + '/api/devices/' + encodeURIComponent(espId) + '/schedules';
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ time_hm, action, days })
+  });
+  print(await r.json());
+}
+
+async function postSchedule(){
+  const espId = document.getElementById('espId').value;
+  const time_hm = document.getElementById('schedTime').value;
+  const action = document.getElementById('schedAction').value;
+  const days = document.getElementById('schedDays').value;
+  const url = base + '/api/devices/' + encodeURIComponent(espId) + '/schedules';
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ time_hm, action, days })
+  });
+  print(await r.json());
+}
+
+
+async function postWattage(){
+  const espId = document.getElementById('espId').value;
+  const wh = Number(document.getElementById('wattage').value);
+  const url = base + '/api/devices/' + encodeURIComponent(espId) + '/wh';
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ wh })
+  });
+  print(await r.json());
+}
+
+async function getSchedules(){
+  const espId = document.getElementById('espId').value;
+  const r = await fetch(base + '/api/devices/' + encodeURIComponent(espId) + '/schedules');
+  
+
+  const schedules = await r.json();
+  
+  schedules.forEach(sch => {
+    insertNewRecord(sch);
+  });
+}
+
+async function insertNewRecord(data) {
+    var table = document.getElementById("dataList").getElementsByTagName('tbody')[0];
+    var newRow = table.insertRow(table.length);
+    cell2 = newRow.insertCell(0);
+    cell2.innerHTML = data.time_hm;
+    cell3 = newRow.insertCell(1);
+    cell3.innerHTML = data.action;
+    cell4 = newRow.insertCell(2);
+    cell4.innerHTML = data.days;
+    cell5 = newRow.insertCell(3);
+    cell5.innerHTML = `<button onClick="onEdit(${data.id}, this)">Edit</a>`;
+}
+
+async function onEdit(id, button) {
+  const r = await fetch(base + '/api/devices/schedules/' + encodeURIComponent(id));
+
+  var newRow = button.closest("tr");
+  
+  const schedule = await r.json();
+  print(id);
+  print(schedule);
+  var table = document.getElementById("dataList").getElementsByTagName('tbody')[0];
+  cell6 = newRow.insertCell(4);
+  cell6.innerHTML = `<input type="text" id="time-${schedule.id}" name="time" value=${schedule.time_hm}><br><br>`;
+  cell7 = newRow.insertCell(5);
+  cell7.innerHTML = `<input type="text" id="action-${schedule.id}" name="act" value=${schedule.action}><br><br>`;
+  cell8 = newRow.insertCell(6);
+  cell8.innerHTML = `<input type="text" id="days-${schedule.id}" name="days" value=${schedule.days}><br><br>`;
+  cell9 = newRow.insertCell(7);
+  cell9.innerHTML = `<button onClick="confirmEdit(${schedule.id}, this)">Confirm</a>`;
+}
+
+async function confirmEdit(id, button) {
+
+
+  var row = button.closest("tr");
+  
+  var table = document.getElementById("dataList").getElementsByTagName('tbody')[0];
+  for (var i = table.rows.length - 1; i >= 0; i--) {
+    table.deleteRow(i);
+  }
+
+  var time_hm = row.querySelector(`input#time-${id}`).value;
+  var action = row.querySelector(`input#action-${id}`).value;
+  var days = row.querySelector(`input#days-${id}`).value;
+
+  const url = base + '/api/devices/schedules/edit/' +  encodeURIComponent(id);
+  const r = await fetch(url, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ time_hm, action, days })
+  });
+
+  row.deleteCell(7);
+  row.deleteCell(6);
+  row.deleteCell(5);
+  row.deleteCell(4);
+
+
+  getSchedules();
+}
+</script>
+</body>
+</html>
