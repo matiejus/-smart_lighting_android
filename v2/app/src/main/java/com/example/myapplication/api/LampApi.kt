@@ -91,7 +91,7 @@ interface LampApi {
         @Body request: ScheduleRequest
     ): ApiResponse
 
-    @DELETE("/api/devices/schedules/{id}")
+    @GET("/api/devices/schedules/delete/{id}")
     suspend fun deleteSchedule(
         @Path("id") id: Int
     ): ApiResponse
