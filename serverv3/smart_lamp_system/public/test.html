@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Smart Lamp API Tester</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; max-width: 900px; margin: 20px; }
+    label { display:block; margin-top:10px; }
+    input, select { padding:6px; }
+    button { padding:8px 12px; margin:6px 2px; }
+    pre { background:#f4f4f4; padding:10px; border-radius:6px; max-height:300px; overflow:auto; }
+    .row { display:flex; gap:8px; align-items:center; margin-top:8px; }
+    .small { width:120px; }
+  </style>
+</head>
+<body>
+  <h2>Smart Lamp — Quick Test Page</h2>
+
+  <div>
+    <label>Device ID:
+      <input id="espId" value="lamp01" />
+    </label>
+
+    <div class="row">
+      <button onclick="registerDevice()">Register device</button>
+      <button onclick="getDevices()">List devices</button>
+      <button onclick="getState()">Get device state</button>
+      <button onclick="getReadings()">Get readings</button>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <label>Relay:
+        <select id="relaySel" class="small">
+          <option value="1">ON</option>
+          <option value="0">OFF</option>
+        </select>
+      </label>
+      <button onclick="setRelay()">POST relay state</button>
+      <button onclick="setRelayViaQuery()">(GET query) quick test</button>
+    </div>
+
+    <hr />
+
+    <h4>Schedule</h4>
+    <div>
+      <label>Time HH:MM
+        <input id="schedTime" value="23:00" class="small" />
+      </label>
+      <label>Action
+        <select id="schedAction" class="small">
+          <option value="on">on</option>
+          <option value="off">off</option>
+        </select>
+      </label>
+      <label>Days (daily or 0,1,2... 0=Sun)
+        <input id="schedDays" value="daily" class="small" />
+      </label>
+      <div class="row">
+        <button onclick="postSchedule()">Create schedule</button>
+        <button onclick="getSchedules()">Get schedules</button>
+      </div>
+    </div>
+
+    <hr />
+
+    <h4>Wattage for this lamp (Wh)</h4>
+    <div>
+      <label>Watt-hours
+        <input id="wattage" value="100" class="small" />
+      </label>
+      <div class="row">
+        <button onclick="postWattage()">Set consumption (Wh)</button>
+      </div>
+    </div>
+
+    <h4>Raw results</h4>
+    <pre id="output">Ready.</pre>
+  </div>
+
+<script>
+const base = location.origin; // http://localhost:3000
+
+function print(o){
+  const el = document.getElementById('output');
+  el.textContent = typeof o === 'string' ? o : JSON.stringify(o, null, 2);
+  console.log(o);
+}
+
+async function registerDevice(){
+  const espId = document.getElementById('espId').value;
+  const url = base + '/api/esp/register';
+  const body = { esp_id: espId, name: 'test-' + espId };
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
+  });
+  print(await r.json());
+}
+
+async function getDevices(){
+  const r = await fetch(base + '/api/devices');
+  print(await r.json());
+}
+
+async function getState(){
+  const espId = document.getElementById('espId').value;
+  const r = await fetch(base + '/api/esp/' + encodeURIComponent(espId) + '/state');
+  print(await r.json());
+}
+
+async function getReadings(){
+  const espId = document.getElementById('espId').value;
+  const r = await fetch(base + '/api/devices/' + encodeURIComponent(espId) + '/readings');
+  print(await r.json());
+}
+
+async function setRelay(){
+  // POST endpoint (recommended)
+  const espId = document.getElementById('espId').value;
+  const state = Number(document.getElementById('relaySel').value);
+  const url = base + '/api/devices/' + encodeURIComponent(espId) + '/relay';
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ state })
+  });
+  print(await r.json());
+}
+
+async function setRelayViaQuery(){
+  // quick GET query style (if you kept that route)
+  const espId = document.getElementById('espId').value;
+  const state = Number(document.getElementById('relaySel').value);
+  const r = await fetch(base + '/api/devices/' + encodeURIComponent(espId) + '/relay?state=' + state);
+  print(await r.json());
+}
+
+async function postSchedule(){
+  const espId = document.getElementById('espId').value;
+  const time_hm = document.getElementById('schedTime').value;
+  const action = document.getElementById('schedAction').value;
+  const days = document.getElementById('schedDays').value;
+  const url = base + '/api/devices/' + encodeURIComponent(espId) + '/schedules';
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ time_hm, action, days })
+  });
+  print(await r.json());
+}
+
+async function postWattage(){
+  const espId = document.getElementById('espId').value;
+  const wh = Number(document.getElementById('wattage').value);
+  const url = base + '/api/devices/' + encodeURIComponent(espId) + '/wh';
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ wh })
+  });
+  print(await r.json());
+}
+
+async function getSchedules(){
+  const espId = document.getElementById('espId').value;
+  const r = await fetch(base + '/api/devices/' + encodeURIComponent(espId) + '/schedules');
+  print(await r.json());
+}
+</script>
+</body>
+</html>

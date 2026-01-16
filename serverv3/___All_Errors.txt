@@ -1,0 +1,22 @@
+CorrelationId: 8612c1c2-6199-4c92-8997-ba1404063d71
+UTC DateTime: 01/16/2026 09:00:30
+
+The following files/folders have not been downloaded
+0. smart_lamp_system/node_modules/acorn/dist/.keep
+1. smart_lamp_system/node_modules/acorn/src/loose/acorn_loose.js
+2. smart_lamp_system/node_modules/jade/block-code.html
+3. smart_lamp_system/node_modules/mime/.npmignore
+4. smart_lamp_system/node_modules/napi-build-utils/index.md
+5. smart_lamp_system/node_modules/node-addon-api/nothing.c
+6. smart_lamp_system/node_modules/node-gyp/gyp/pylib/gyp/generator/__init__.py
+7. smart_lamp_system/node_modules/smart-buffer/docs/ROADMAP.md
+8. smart_lamp_system/node_modules/tar-fs/test/fixtures/d/file1
+9. smart_lamp_system/node_modules/tar-fs/test/fixtures/d/sub-dir/file5
+10. smart_lamp_system/node_modules/tar-fs/test/fixtures/d/sub-files/file3
+11. smart_lamp_system/node_modules/tar-fs/test/fixtures/d/sub-files/file4
+12. smart_lamp_system/node_modules/tar-fs/test/fixtures/d/file2
+13. smart_lamp_system/node_modules/tar-fs/test/fixtures/e/file
+14. smart_lamp_system/node_modules/tar-fs/test/fixtures/e/directory/.ignore
+15. smart_lamp_system/node_modules/with/node_modules/acorn/dist/.keep
+16. smart_lamp_system/node_modules/with/node_modules/acorn/src/loose/acorn_loose.js
+17. smart_lamp_system/routes/data.db
